@@ -29,7 +29,9 @@ body {
   color: var(--txt);
   font-family: var(--sans);
   min-height: 100vh;
+  overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── DESKTOP LAYOUT (>= 900px) ── */
@@ -125,13 +127,13 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
 .main {
   display: grid;
   grid-template-columns: 1fr;
-  overflow: auto;
-  min-height: 0;
+  overflow: visible;
 }
 @media (min-width: 900px) {
   .main {
     grid-template-columns: 530px 1fr;
     overflow: hidden;
+    min-height: 0;
   }
 }
 
@@ -180,7 +182,8 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
   flex-direction: column;
   padding: 12px 14px 8px;
   gap: 6px;
-  min-height: 320px;
+  min-height: 360px;
+  height: 360px;
 }
 .bars-hdr { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
 .bars-title { font-size: 10px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); }
@@ -191,7 +194,7 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
 .streak-bull { background: rgba(16,185,129,0.12); color: var(--grn); border: 1px solid rgba(16,185,129,0.25); }
 .streak-bear { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
 .streak-neut { background: var(--bg2); color: var(--dim); border: 1px solid var(--bdr); }
-#bars-svg { width: 100%; flex: 1; min-height: 200px; }
+#bars-svg { width: 100%; flex: 1; min-height: 260px; }
 .bars-legend {
   display: flex; gap: 16px; font-size: 11px; color: var(--dim); font-family: var(--mono); flex-wrap: wrap;
 }
@@ -199,7 +202,7 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
 .ld { width: 14px; height: 11px; border-radius: 2px; }
 
 @media (min-width: 900px) {
-  .bars-panel { padding: 10px 20px 8px; gap: 5px; min-height: 0; }
+  .bars-panel { padding: 10px 20px 8px; gap: 5px; min-height: 0; height: auto; }
   .bars-title { font-size: 13px; }
   .streak-badge { font-size: 18px; padding: 5px 16px; }
   .bars-legend { gap: 22px; font-size: 15px; }
