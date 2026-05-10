@@ -214,26 +214,23 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
   border-top: 1px solid var(--bdr);
   display: grid;
   grid-template-columns: 1fr;
-  align-items: stretch;
-}
-@media (min-width: 900px) {
-  .peers-bar { grid-template-columns: 1fr 1fr 1fr 1fr; }
 }
 .peer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; border-right: none;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--bdr);
+  border-right: none;
 }
 .peer:last-of-type { border-bottom: none; }
+
 @media (min-width: 900px) {
+  .peers-bar { grid-template-columns: 1fr 1fr 1fr 1fr; }
   .peer {
     padding: 0 20px;
     border-bottom: none;
     border-right: 1px solid var(--bdr);
   }
-  .peer:nth-child(2) { border-right: 1px solid var(--bdr); }
-  .peer:nth-child(3) { border-bottom: none; }
-  .peer:last-of-type { border-right: none; border-bottom: none; }
+  .peer:last-of-type { border-right: none; }
 }
 
 .peer-left { display: flex; align-items: center; gap: 10px; }
@@ -611,7 +608,7 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
     <div class="peer-badge pb-neut" id="ym-badge">—</div>
     <div class="peer-tooltip" id="ym-tooltip"></div>
   </div>
-  <div class="peer" id="peer-RTY" style="border-right:none;">
+  <div class="peer" id="peer-RTY">
     <div class="peer-left">
       <div class="peer-sym">RTY</div>
       <div class="peer-info">
@@ -628,7 +625,6 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
     <div class="peer-badge pb-neut" id="rty-badge">—</div>
     <div class="peer-tooltip" id="rty-tooltip"></div>
   </div>
-  <div style="width:1px;background:var(--bdr)"></div>
 </div>
 
 <script>
