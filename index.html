@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NQ COT Bias</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:   #090b12;
+  --bg2:  #0e1120;
+  --bg3:  #13172a;
+  --bdr:  #1c2140;
+  --bdr2: #28305a;
+  --txt:  #dde4f5;
+  --dim:  #4a5580;
+  --dim2: #2a3055;
+  --grn:  #10b981;
+  --red:  #ef4444;
+  --yel:  #f59e0b;
+  --blu:  #3b82f6;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100vh; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── DESKTOP LAYOUT (>= 900px) ── */
+@media (min-width: 900px) {
+  body {
+    display: grid;
+    grid-template-rows: 62px 150px 1fr 145px;
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* ── HEADER ── */
+header {
+  background: #07090e;
+  border-bottom: 1px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+  min-height: 56px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.h-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.h-title h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
+.h-title .sub { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+.h-right { display: flex; align-items: center; gap: 0; }
+input[type=date] {
+  background: #0e1525; border: 2.5px solid #60a5fa; color: #dde4f5;
+  padding: 8px 12px; border-radius: 8px; font-size: 16px; font-family: var(--mono);
+  cursor: pointer; outline: none; font-weight: 700;
+  box-shadow: 0 0 10px rgba(96,165,250,0.35);
+  -webkit-appearance: none;
+  touch-action: manipulation;
+}
+input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165,250,0.55); }
+@media (min-width: 900px) {
+  .h-title h1 { font-size: 20px; }
+  .h-title .sub { font-size: 13px; }
+  input[type=date] { font-size: 18px; padding: 8px 16px; }
+}
+
+/* ── VERDICT BANNER ── */
+.verdict-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 20px;
+  border-bottom: 1px solid var(--bdr);
+  padding: 14px 16px;
+  position: relative;
+  transition: background 0.4s;
+}
+.verdict-banner.long  { background: radial-gradient(ellipse at center, rgba(16,185,129,0.12) 0%, transparent 70%); }
+.verdict-banner.short { background: radial-gradient(ellipse at center, rgba(239,68,68,0.12) 0%, transparent 70%); }
+.verdict-banner.neut  { background: radial-gradient(ellipse at center, rgba(245,158,11,0.07) 0%, transparent 70%); }
+
+.vd-signal { display: flex; align-items: center; gap: 12px; }
+.vd-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  box-shadow: 0 0 18px currentColor; flex-shrink: 0;
+}
+.vd-text {
+  font-size: 42px; font-weight: 800; letter-spacing: 0.06em;
+  font-family: var(--mono); line-height: 1;
+}
+.vd-sub {
+  font-size: 13px; font-family: var(--mono); color: var(--dim);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.vd-sub .conf { font-weight: 700; font-size: 15px; }
+
+.vd-sep { width: 1px; height: 52px; background: var(--bdr); margin: 0 4px; }
+.vd-stat { text-align: center; }
+.vd-stat .lbl { font-size: 11px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); margin-bottom: 5px; }
+.vd-stat .val { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+
+@media (min-width: 900px) {
+  .verdict-banner { padding: 0 32px; gap: 26px; flex-wrap: nowrap; }
+  .vd-dot { width: 30px; height: 30px; }
+  .vd-text { font-size: 66px; }
+  .vd-sub .conf { font-size: 19px; }
+  .vd-sub { font-size: 16px; }
+  .vd-sep { height: 82px; margin: 0 8px; }
+  .vd-stat .lbl { font-size: 13px; margin-bottom: 7px; }
+  .vd-stat .val { font-size: 36px; }
+}
+
+/* ── MAIN ── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: auto;
+  min-height: 0;
+}
+@media (min-width: 900px) {
+  .main {
+    grid-template-columns: 530px 1fr;
+    overflow: hidden;
+  }
+}
+
+/* ── GAUGE PANEL ── */
+.gauge-panel {
+  border-right: none;
+  border-bottom: 1px solid var(--bdr);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px 10px;
+  gap: 0;
+}
+.gauge-info { text-align: center; padding: 2px 0 4px; width: 100%; }
+.gi-pct  { font-family: var(--mono); font-size: 16px; font-weight: 700; color: #94a3b8; margin-bottom: 3px; }
+.gi-skew { font-family: var(--mono); font-size: 15px; color: #64748b; }
+#gauge-svg { width: 100%; max-width: 360px; height: auto; flex-shrink: 0; }
+.gauge-meta {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; width: 100%; padding: 0; margin-top: 8px; max-width: 380px;
+}
+.gm { background: var(--bg2); border: 1px solid var(--bdr); border-radius: 8px; padding: 8px 12px; }
+.gm .gl { font-size: 9px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); margin-bottom: 4px; }
+.gm .gv { font-size: 16px; font-weight: 700; font-family: var(--mono); }
+
+@media (min-width: 900px) {
+  .gauge-panel {
+    border-right: 1px solid var(--bdr);
+    border-bottom: none;
+    padding: 6px 12px 8px;
+    min-height: 0;
+  }
+  .gi-pct  { font-size: 20px; }
+  .gi-skew { font-size: 19px; }
+  #gauge-svg { max-width: 500px; }
+  .gauge-meta { max-width: 100%; gap: 10px; padding: 0 4px; margin-top: 8px; }
+  .gm { padding: 9px 14px; }
+  .gm .gl { font-size: 11px; }
+  .gm .gv { font-size: 22px; }
+}
+
+/* ── BARS PANEL ── */
+.bars-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 8px;
+  gap: 6px;
+  min-height: 320px;
+}
+.bars-hdr { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+.bars-title { font-size: 10px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); }
+.streak-badge {
+  font-size: 13px; font-family: var(--mono); font-weight: 700;
+  padding: 3px 12px; border-radius: 14px;
+}
+.streak-bull { background: rgba(16,185,129,0.12); color: var(--grn); border: 1px solid rgba(16,185,129,0.25); }
+.streak-bear { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+.streak-neut { background: var(--bg2); color: var(--dim); border: 1px solid var(--bdr); }
+#bars-svg { width: 100%; flex: 1; min-height: 200px; }
+.bars-legend {
+  display: flex; gap: 16px; font-size: 11px; color: var(--dim); font-family: var(--mono); flex-wrap: wrap;
+}
+.ll { display: flex; align-items: center; gap: 5px; }
+.ld { width: 14px; height: 11px; border-radius: 2px; }
+
+@media (min-width: 900px) {
+  .bars-panel { padding: 10px 20px 8px; gap: 5px; min-height: 0; }
+  .bars-title { font-size: 13px; }
+  .streak-badge { font-size: 18px; padding: 5px 16px; }
+  .bars-legend { gap: 22px; font-size: 15px; }
+  .ld { width: 18px; height: 14px; }
+  #bars-svg { min-height: 0; }
+}
+
+/* ── PEERS BAR ── */
+.peers-bar {
+  border-top: 1px solid var(--bdr);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+}
+@media (min-width: 900px) {
+  .peers-bar { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
+.peer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-right: 1px solid var(--bdr);
+  border-bottom: 1px solid var(--bdr);
+}
+.peer:nth-child(2)  { border-right: none; }
+.peer:nth-child(3)  { border-bottom: none; }
+.peer:nth-child(4)  { border-right: none; border-bottom: none; }
+@media (min-width: 900px) {
+  .peer {
+    padding: 0 20px; border-bottom: none;
+  }
+  .peer:nth-child(2) { border-right: 1px solid var(--bdr); }
+  .peer:nth-child(3) { border-bottom: none; }
+  .peer:last-of-type { border-right: none; }
+}
+
+.peer-left { display: flex; align-items: center; gap: 10px; }
+.peer-sym  { font-size: 22px; font-weight: 700; font-family: var(--mono); flex-shrink: 0; }
+.peer-info { display: flex; flex-direction: column; gap: 1px; }
+.peer-name { font-size: 10px; color: var(--dim); margin-bottom: 2px; }
+.peer-net  { font-size: 12px; font-family: var(--mono); margin-bottom: 3px; }
+.peer-rows { display: flex; flex-direction: column; gap: 2px; }
+.pr { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.pr-lbl { font-size: 9px; color: var(--dim); font-family: var(--mono); white-space: nowrap; }
+.pr-val { font-size: 11px; font-weight: 700; font-family: var(--mono); }
+.peer-badge {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px;
+  font-family: var(--mono); letter-spacing: 0.04em; flex-shrink: 0; margin-left: 6px;
+}
+.pb-long  { background: rgba(16,185,129,0.12); color: var(--grn); border: 1px solid rgba(16,185,129,0.3); }
+.pb-short { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.pb-neut  { background: var(--bg2); color: var(--dim); border: 1px solid var(--bdr); }
+
+@media (min-width: 900px) {
+  .peer-left { gap: 14px; }
+  .peer-sym  { font-size: 28px; }
+  .peer-name { font-size: 11px; margin-bottom: 3px; }
+  .peer-net  { font-size: 14px; margin-bottom: 4px; }
+  .pr-lbl { font-size: 10px; }
+  .pr-val { font-size: 13px; }
+  .peer-badge { font-size: 14px; padding: 6px 16px; border-radius: 18px; margin-left: 0; }
+}
+.peers-confirm {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 24px; gap: 5px;
+}
+.pc-count { font-size: 38px; font-weight: 700; font-family: var(--mono); }
+.pc-label { font-size: 11px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); }
+
+/* ── PEER TOOLTIP (opens upward from bottom bar) ── */
+.peer { position: relative; }
+.peer-tooltip {
+  display: none;
+  position: fixed;
+  bottom: 150px;
+  left: 50%; transform: translateX(-50%);
+  background: #0d1220;
+  border: 1px solid #2a3a5a;
+  border-radius: 12px;
+  padding: 14px 18px;
+  width: min(310px, 90vw);
+  z-index: 300;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.80);
+  text-align: left;
+}
+.peer:hover .peer-tooltip,
+.peer.tt-open .peer-tooltip { display: block; }
+.peer-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -7px; left: 50%; transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid #0d1220;
+}
+.peer-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: -8px; left: 50%; transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #2a3a5a;
+}
+.pt-hdr { font-size: 9px; letter-spacing: 0.14em; color: #3a5070; font-family: var(--mono); margin-bottom: 10px; font-weight: 700; }
+.pt-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 5px; }
+.pt-lbl { font-size: 11px; color: #4a6090; font-family: var(--mono); }
+.pt-val { font-size: 13px; font-family: var(--mono); font-weight: 700; }
+.pt-div { height: 1px; background: #1a2440; margin: 8px 0; }
+.pt-formula { font-size: 11px; color: #3a5070; font-family: var(--mono); line-height: 1.75; }
+.pt-src { font-size: 10px; color: #243040; margin-top: 8px; font-family: var(--mono); }
+.pt-src a { color: #3b6090; }
+
+/* LOADER */
+.loader-wrap {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  z-index: 99;
+}
+.ld-spin {
+  width: 42px; height: 42px; border: 2px solid var(--bdr);
+  border-top-color: var(--blu); border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ld-txt { font-size: 15px; color: var(--dim); font-family: var(--mono); }
+
+/* ── TOOLTIP ── */
+.has-tooltip { position: relative; cursor: help; }
+.tooltip-box {
+  display: none;
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0d1220;
+  border: 1px solid #2a3a5a;
+  border-radius: 12px;
+  padding: 16px 20px;
+  width: 360px;
+  z-index: 300;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.75);
+  pointer-events: none;
+  text-align: left;
+}
+.has-tooltip:hover .tooltip-box,
+.has-tooltip.tt-open .tooltip-box { display: block; }
+/* Arrow pointing up */
+.tooltip-box::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: 50%; transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #2a3a5a;
+}
+.tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: -6px; left: 50%; transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid #0d1220;
+}
+.tt-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  color: #4a6090; font-family: var(--mono); margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.tt-line { font-size: 13px; color: #94a3b8; line-height: 1.65; margin-bottom: 8px; }
+.tt-line strong { color: #dde4f5; }
+.tt-formula {
+  background: #080e1a; border: 1px solid #1a2440;
+  border-radius: 8px; padding: 11px 14px;
+  font-family: var(--mono); font-size: 12px;
+  color: #4a6090; line-height: 1.8; margin: 10px 0;
+}
+.tt-formula .hl  { color: #f59e0b; font-weight: 700; }
+.tt-formula .grn { color: #10b981; font-weight: 700; }
+.tt-formula .red { color: #ef4444; font-weight: 700; }
+.tt-insight {
+  font-size: 12px; color: #3a5070; line-height: 1.55;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid #1a2440; font-style: italic;
+}
+.tt-icon { font-size: 11px; color: #3b82f6; margin-left: 3px; font-style: normal; }
+.green { color: var(--grn); } .red { color: var(--red); } .yel { color: var(--yel); }
+</style>
+</head>
+<body>
+
+<div class="loader-wrap" id="loader">
+  <div class="ld-spin"></div>
+  <div class="ld-txt" id="ld-txt">Fetching COT data from CFTC…</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="h-title">
+    <h1>NQ COT BIAS</h1>
+    <span class="sub">non-commercial positioning</span>
+  </div>
+  <div class="h-right">
+    <input type="date" id="date-input" onchange="onDateChange()">
+  </div>
+</header>
+
+<!-- VERDICT BANNER -->
+<div class="verdict-banner neut" id="verdict-banner">
+  <div class="vd-signal">
+    <div class="vd-dot" id="vd-dot" style="color:var(--yel);background:var(--yel)"></div>
+    <div class="vd-text" id="vd-text" style="color:var(--yel)">LOADING</div>
+    <div class="vd-sub">
+      <div class="conf" id="vd-conf">—</div>
+      <div id="vd-skew">skew —</div>
+    </div>
+  </div>
+  <div class="vd-sep"></div>
+  <div class="vd-stat">
+    <div class="lbl">NET POSITION</div>
+    <div class="val" id="vd-net">—</div>
+  </div>
+  <div class="vd-sep"></div>
+  <div class="vd-stat has-tooltip">
+    <div class="lbl">NET CHANGE (WK) <span class="tt-icon">ⓘ</span></div>
+    <div class="val" id="vd-chg">—</div>
+    <div class="tooltip-box">
+      <div class="tt-title">What is Net Change (Weekly)?</div>
+      <div class="tt-line">The week-over-week shift in <strong>Non-Commercial Net Position</strong> — how much big money added or removed from their long or short lean between the two most recent CFTC Tuesday reports.</div>
+      <div class="tt-formula" id="tt-chg-formula">
+        <span class="hl">Formula:</span><br>
+        This week's (Longs − Shorts)<br>
+        &nbsp;&nbsp;<em>minus</em> Last week's (Longs − Shorts)
+      </div>
+      <div class="tt-line" id="tt-chg-explain">Loading…</div>
+      <div class="tt-insight">Fabio: "Who has foot on gas?" — Watch for consecutive red bars in the chart: they signal the tide turning <em>before</em> net position flips negative. That's your early warning.</div>
+    </div>
+  </div>
+  <div class="vd-sep"></div>
+  <div class="vd-stat has-tooltip">
+    <div class="lbl">MOMENTUM <span class="tt-icon">ⓘ</span></div>
+    <div class="val" id="vd-mom">—</div>
+    <div class="tooltip-box">
+      <div class="tt-title">How is Momentum derived?</div>
+      <div class="tt-line">Momentum compares the <strong>bias direction</strong> to the <strong>weekly change direction</strong> — is big money pressing their current position, or backing off?</div>
+      <div class="tt-formula">
+        <span class="hl">LONG bias:</span><br>
+        &nbsp;Wk change <span class="grn">positive</span> → <span class="grn">BUILDING ↑</span> (adding to long lean)<br>
+        &nbsp;Wk change <span class="red">negative</span> → <span class="red">COOLING ↓</span> (trimming long lean)<br><br>
+        <span class="hl">SHORT bias:</span><br>
+        &nbsp;Wk change <span class="red">negative</span> → <span class="red">BUILDING ↓</span> (adding to short lean)<br>
+        &nbsp;Wk change <span class="grn">positive</span> → <span class="grn">COOLING ↑</span> (covering shorts)<br><br>
+        <span class="hl">NEUTRAL bias:</span> → <span style="color:#f59e0b;">MIXED</span>
+      </div>
+      <div class="tt-line" id="tt-mom-explain">Loading…</div>
+      <div class="tt-insight">COOLING doesn't mean the bias reverses — it means conviction is softening. Watch for COOLING + consecutive red bars together as an early warning.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- GAUGE PANEL -->
+  <div class="gauge-panel">
+    <!-- Pct + skew info above the arc, outside SVG for clean spacing -->
+    <div class="gauge-info">
+      <div class="gi-pct" id="gauge-pct-txt">—</div>
+      <div class="gi-skew" id="gauge-skew-txt">—</div>
+    </div>
+    <svg id="gauge-svg" viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="arcGrad" x1="20" y1="0" x2="320" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#ef4444"/>
+          <stop offset="22%"  stop-color="#f97316"/>
+          <stop offset="44%"  stop-color="#ca8a04"/>
+          <stop offset="56%"  stop-color="#ca8a04"/>
+          <stop offset="78%"  stop-color="#84cc16"/>
+          <stop offset="100%" stop-color="#10b981"/>
+        </linearGradient>
+        <filter id="needleGlow">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Background arc track: center (170,185), radius 150 -->
+      <path d="M 20 185 A 150 150 0 0 1 320 185"
+        stroke="#1a1f35" stroke-width="32" fill="none" stroke-linecap="round"/>
+
+      <!-- Colored gradient arc -->
+      <path d="M 20 185 A 150 150 0 0 1 320 185"
+        stroke="url(#arcGrad)" stroke-width="30" fill="none"
+        stroke-linecap="round" opacity="0.9"/>
+
+      <!-- ±30% threshold tick marks — repositioned to exactly match needle at ±30% skew -->
+      <!-- Needle formula: rot = (skewPct/100)*90  →  at ±30% skew, rot = ±27°             -->
+      <!-- Arc center (170,185) radius 150. At 27°: sin=0.4540 cos=0.8910                  -->
+      <!-- r=150: (238.1, 51.4)  r=172: (248.1, 33.3)  label r=190: (256.3, 15.7)          -->
+
+      <!-- SHORT side (−27°): x = 170 − r·sin(27°), y = 185 − r·cos(27°) -->
+      <line x1="101.9" y1="51.4" x2="91.9" y2="33.3"
+        stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+      <text x="84" y="16" font-family="Space Mono" font-size="11"
+        fill="#f59e0b" text-anchor="middle" font-weight="700">−30%</text>
+
+      <!-- LONG side (+27°): x = 170 + r·sin(27°), y = 185 − r·cos(27°) -->
+      <line x1="238.1" y1="51.4" x2="248.1" y2="33.3"
+        stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+      <text x="256" y="16" font-family="Space Mono" font-size="11"
+        fill="#f59e0b" text-anchor="middle" font-weight="700">+30%</text>
+
+      <!-- Needle hub -->
+      <circle cx="170" cy="185" r="14" fill="#0e1120"/>
+      <circle cx="170" cy="185" r="10" fill="#1a1f35"/>
+
+      <!-- NEEDLE (initially straight up) -->
+      <g id="gauge-needle" transform="rotate(0, 170, 185)">
+        <polygon points="170,38 166,185 174,185"
+          fill="rgba(255,255,255,0.94)" filter="url(#needleGlow)"/>
+      </g>
+
+      <!-- Hub overlay -->
+      <circle cx="170" cy="185" r="8" fill="#0e1120"/>
+      <circle cx="170" cy="185" r="5" fill="white" opacity="0.95"/>
+    </svg>
+
+    <!-- 3 meta stats below gauge -->
+    <div class="gauge-meta">
+      <div class="gm">
+        <div class="gl">LONGS</div>
+        <div class="gv green" id="gm-longs">—</div>
+      </div>
+      <div class="gm">
+        <div class="gl">SHORTS</div>
+        <div class="gv red" id="gm-shorts">—</div>
+      </div>
+      <div class="gm">
+        <div class="gl">OPEN INT</div>
+        <div class="gv" id="gm-oi">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARS PANEL -->
+  <div class="bars-panel">
+    <div class="bars-hdr">
+      <div class="bars-title">WEEKLY NET CHANGE — LAST 12 WEEKS</div>
+      <div class="streak-badge streak-neut" id="streak-badge">—</div>
+    </div>
+    <svg id="bars-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"></svg>
+    <div class="bars-legend">
+      <div class="ll"><div class="ld" style="background:rgba(16,185,129,0.7)"></div>Bullish week</div>
+      <div class="ll"><div class="ld" style="background:rgba(239,68,68,0.7)"></div>Bearish week</div>
+      <div class="ll" style="color:var(--dim2)">│ dashed = 30% skew threshold</div>
+    </div>
+  </div>
+</div>
+
+<!-- PEERS BAR -->
+<div class="peers-bar">
+  <div class="peer" id="peer-NQ">
+    <div class="peer-left">
+      <div class="peer-sym" style="color:var(--blu)">NQ</div>
+      <div class="peer-info">
+        <div class="peer-name">Nasdaq Mini Futures <span style="color:#3b82f6;font-size:10px;">ⓘ</span></div>
+        <div class="peer-net" id="nq-peer-net">—</div>
+        <div class="peer-rows">
+          <div class="pr"><span class="pr-lbl">Non-Comm Longs</span><span class="pr-val green" id="nq-pr-longs">—</span></div>
+          <div class="pr"><span class="pr-lbl">Non-Comm Shorts</span><span class="pr-val red"   id="nq-pr-shorts">—</span></div>
+          <div class="pr"><span class="pr-lbl">Long change (wk)</span><span class="pr-val"       id="nq-pr-cl">—</span></div>
+          <div class="pr"><span class="pr-lbl">Short change (wk)</span><span class="pr-val"      id="nq-pr-cs">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="peer-badge pb-neut" id="nq-peer-badge">—</div>
+    <div class="peer-tooltip" id="nq-tooltip"></div>
+  </div>
+  <div class="peer" id="peer-ES">
+    <div class="peer-left">
+      <div class="peer-sym">ES</div>
+      <div class="peer-info">
+        <div class="peer-name">S&amp;P 500 Consolidated <span style="color:#3b82f6;font-size:10px;">ⓘ</span></div>
+        <div class="peer-net" id="es-net">—</div>
+        <div class="peer-rows">
+          <div class="pr"><span class="pr-lbl">Non-Comm Longs</span><span class="pr-val green" id="es-pr-longs">—</span></div>
+          <div class="pr"><span class="pr-lbl">Non-Comm Shorts</span><span class="pr-val red"   id="es-pr-shorts">—</span></div>
+          <div class="pr"><span class="pr-lbl">Long change (wk)</span><span class="pr-val"       id="es-pr-cl">—</span></div>
+          <div class="pr"><span class="pr-lbl">Short change (wk)</span><span class="pr-val"      id="es-pr-cs">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="peer-badge pb-neut" id="es-badge">—</div>
+    <div class="peer-tooltip" id="es-tooltip"></div>
+  </div>
+  <div class="peer" id="peer-YM">
+    <div class="peer-left">
+      <div class="peer-sym">YM</div>
+      <div class="peer-info">
+        <div class="peer-name">Dow Jones Futures <span style="color:#3b82f6;font-size:10px;">ⓘ</span></div>
+        <div class="peer-net" id="ym-net">—</div>
+        <div class="peer-rows">
+          <div class="pr"><span class="pr-lbl">Non-Comm Longs</span><span class="pr-val green" id="ym-pr-longs">—</span></div>
+          <div class="pr"><span class="pr-lbl">Non-Comm Shorts</span><span class="pr-val red"   id="ym-pr-shorts">—</span></div>
+          <div class="pr"><span class="pr-lbl">Long change (wk)</span><span class="pr-val"       id="ym-pr-cl">—</span></div>
+          <div class="pr"><span class="pr-lbl">Short change (wk)</span><span class="pr-val"      id="ym-pr-cs">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="peer-badge pb-neut" id="ym-badge">—</div>
+    <div class="peer-tooltip" id="ym-tooltip"></div>
+  </div>
+  <div class="peer" id="peer-RTY" style="border-right:none;">
+    <div class="peer-left">
+      <div class="peer-sym">RTY</div>
+      <div class="peer-info">
+        <div class="peer-name">Russell 2000 Futures <span style="color:#3b82f6;font-size:10px;">ⓘ</span></div>
+        <div class="peer-net" id="rty-net">—</div>
+        <div class="peer-rows">
+          <div class="pr"><span class="pr-lbl">Non-Comm Longs</span><span class="pr-val green" id="rty-pr-longs">—</span></div>
+          <div class="pr"><span class="pr-lbl">Non-Comm Shorts</span><span class="pr-val red"   id="rty-pr-shorts">—</span></div>
+          <div class="pr"><span class="pr-lbl">Long change (wk)</span><span class="pr-val"       id="rty-pr-cl">—</span></div>
+          <div class="pr"><span class="pr-lbl">Short change (wk)</span><span class="pr-val"      id="rty-pr-cs">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="peer-badge pb-neut" id="rty-badge">—</div>
+    <div class="peer-tooltip" id="rty-tooltip"></div>
+  </div>
+  <div style="width:1px;background:var(--bdr)"></div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const CFTC_BASE = 'https://publicreporting.cftc.gov/resource/6dca-aqww.json';
+// CORS proxy fallback — used automatically if direct call fails
+const PROXY     = 'https://corsproxy.io/?';
+
+const FILTERS = {
+  NQ:  { field: 'market_and_exchange_names', value: 'NASDAQ MINI' },
+  ES:  { field: 'cftc_contract_market_code', value: '13874+' },   // S&P 500 Consolidated — code avoids & encoding issue
+  YM:  { field: 'market_and_exchange_names', value: 'DOW JONES' },
+  RTY: { field: 'market_and_exchange_names', value: 'E-MINI RUSSELL 2000' },
+};
+
+// ── STATE ─────────────────────────────────────────────────
+let rawData = {};
+let viewDate = null;
+
+// ── FETCH (direct → proxy fallback) ───────────────────────
+async function fetchCOT(filter, limit) {
+  const w     = encodeURIComponent(`${filter.field} like '%${filter.value}%'`);
+  const query = `${CFTC_BASE}?$where=${w}&$order=report_date_as_yyyy_mm_dd DESC&$limit=${limit}`;
+
+  // 1. Try direct
+  try {
+    const r = await fetch(query, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) { const d = await r.json(); if (d.length) return d; }
+  } catch (_) { /* fall through to proxy */ }
+
+  // 2. Try via CORS proxy
+  const r2 = await fetch(PROXY + encodeURIComponent(query), { signal: AbortSignal.timeout(12000) });
+  if (!r2.ok) throw new Error(`HTTP ${r2.status}`);
+  return r2.json();
+}
+
+function parseRow(r) {
+  const l = parseInt(r.noncomm_positions_long_all) || 0;
+  const s = parseInt(r.noncomm_positions_short_all) || 0;
+  return {
+    date:   (r.report_date_as_yyyy_mm_dd || '').slice(0, 10),
+    longs:  l, shorts: s,
+    spread: parseInt(r.noncomm_postions_spread_all) || 0,
+    oi:     parseInt(r.open_interest_all) || 0,
+    cL:     parseInt(r.change_in_noncomm_long_all) || 0,
+    cS:     parseInt(r.change_in_noncomm_short_all) || 0,
+    net:    l - s,
+  };
+}
+
+async function load() {
+  let anyFailed = false;
+
+  // Fetch sequentially so status messages are readable
+  for (const [sym, filter] of Object.entries(FILTERS)) {
+    setLd(`Fetching ${sym} from CFTC…`);
+    const limit = sym === 'NQ' ? 200 : 60;
+    try {
+      const rows = await fetchCOT(filter, limit);
+      rawData[sym] = rows.map(parseRow).filter(r => r.date);
+      if (!rawData[sym].length) throw new Error('No records returned');
+      setLd(`✓ ${sym} loaded (${rawData[sym].length} weeks)`);
+    } catch (e) {
+      console.warn(sym, e.message);
+      rawData[sym] = [];
+      anyFailed = true;
+      setLd(`✗ ${sym} failed: ${e.message}`);
+      await new Promise(res => setTimeout(res, 600)); // pause so user can read
+    }
+  }
+
+  if (!rawData['NQ'] || rawData['NQ'].length === 0) {
+    showNetworkError();
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const dp = document.getElementById('date-input');
+  dp.max = today;
+  dp.value = today;
+
+  document.getElementById('loader').style.display = 'none';
+  render();
+}
+
+function setLd(t) { document.getElementById('ld-txt').textContent = t; }
+
+function showNetworkError() {
+  document.getElementById('loader').innerHTML = `
+    <div style="max-width:500px;text-align:center;padding:30px;">
+      <div style="font-size:32px;margin-bottom:16px;">⚠️</div>
+      <div style="font-size:15px;color:#dde4f5;margin-bottom:12px;font-weight:700;">
+        Cannot reach CFTC data API
+      </div>
+      <div style="font-size:12px;color:#4a5580;line-height:1.8;font-family:'Space Mono',monospace;">
+        This tool fetches live data from <strong style="color:#94a3b8;">publicreporting.cftc.gov</strong><br>
+        That connection is blocked in the Claude.ai preview window.<br><br>
+        <strong style="color:#f59e0b;">Fix:</strong> Download the HTML file using the button above,<br>
+        then open it directly in Chrome or Firefox.<br>
+        The CFTC API will connect automatically from your browser.
+      </div>
+      <div style="margin-top:20px;font-size:11px;color:#2a3060;font-family:'Space Mono',monospace;">
+        File → Save As → nq-cot-bias-v2.html → Open in browser
+      </div>
+    </div>`;
+}
+
+// ── GET RECORD AT DATE ─────────────────────────────────────
+function getAt(sym, targetDate) {
+  const data = rawData[sym] || [];
+  const tStr = targetDate ? targetDate.toISOString().slice(0, 10) : '9999-99-99';
+  return data.find(r => r.date <= tStr) || null;
+}
+
+function getPrev(sym, curDate) {
+  const data = rawData[sym] || [];
+  if (!curDate) return null;
+  const idx = data.findIndex(r => r.date === curDate);
+  return idx >= 0 && idx + 1 < data.length ? data[idx + 1] : null;
+}
+
+// ── COMPUTE METRICS ───────────────────────────────────────
+function compute(sym, targetDate) {
+  const rec = getAt(sym, targetDate);
+  if (!rec) return null;
+  const prev = getPrev(sym, rec.date);
+  const data = rawData[sym] || [];
+
+  const total = rec.longs + rec.shorts;
+  // Fabio skew: (longs - shorts) / (longs + shorts) * 100
+  const skewPct = total > 0 ? ((rec.longs - rec.shorts) / total) * 100 : 0;
+  const weeklyChg = prev ? rec.net - prev.net : (rec.cL - rec.cS);
+
+  // 1-year percentile
+  const tStr = targetDate ? targetDate.toISOString().slice(0, 10) : '9999-99-99';
+  const hist = data.filter(r => r.date <= tStr).slice(0, 52); // ~1 year
+  const sortedNets = [...hist].map(r => r.net).sort((a, b) => a - b);
+  const pctRank = sortedNets.length > 0
+    ? Math.round((sortedNets.filter(v => v <= rec.net).length / sortedNets.length) * 100)
+    : 50;
+
+  // Fabio bias verdict
+  const absSkew = Math.abs(skewPct);
+  let biasDir, confirmed;
+  if (absSkew >= 30) {
+    biasDir   = skewPct > 0 ? 'long' : 'short';
+    confirmed = true;
+  } else if (absSkew >= 12) {
+    biasDir   = skewPct > 0 ? 'long' : 'short';
+    confirmed = false;
+  } else {
+    biasDir   = 'neutral';
+    confirmed = false;
+  }
+
+  // Momentum: is weekly change reinforcing the bias?
+  let momentum;
+  if (biasDir === 'long')        momentum = weeklyChg > 0 ? 'BUILDING ↑' : 'COOLING ↓';
+  else if (biasDir === 'short')  momentum = weeklyChg < 0 ? 'BUILDING ↓' : 'COOLING ↑';
+  else                           momentum = 'MIXED';
+
+  // 12-week change bar data
+  const recent = data.filter(r => r.date <= tStr).slice(0, 13);
+  const bars = [];
+  for (let i = 0; i < recent.length - 1; i++) {
+    bars.push({
+      date: recent[i].date.slice(5),  // MM-DD
+      chg:  recent[i].net - recent[i + 1].net,
+    });
+  }
+  bars.reverse();  // oldest first for display
+
+  // Streak: consecutive same-direction weeks (from most recent)
+  let streak = 0, streakDir = null;
+  const barsDesc = [...bars].reverse();
+  for (const b of barsDesc) {
+    const d = b.chg > 0 ? 'bull' : b.chg < 0 ? 'bear' : null;
+    if (streak === 0 && d) { streak = 1; streakDir = d; }
+    else if (d === streakDir) streak++;
+    else break;
+  }
+
+  return { rec, prev, skewPct, weeklyChg, pctRank, biasDir, confirmed, momentum, bars, streak, streakDir };
+}
+
+// ── RENDER ALL ────────────────────────────────────────────
+function render() {
+  const td = viewDate;
+  const nq = compute('NQ', td);
+  if (!nq) return;
+
+  renderVerdict(nq);
+  renderGauge(nq);
+  renderBars(nq);
+  renderPeers(nq, td);
+}
+
+// ── VERDICT BANNER ────────────────────────────────────────
+function renderVerdict(nq) {
+  const { biasDir, confirmed, skewPct, weeklyChg, momentum } = nq;
+
+  let color, label, confLabel;
+  if (biasDir === 'long') {
+    color = 'var(--grn)'; label = 'LONG BIAS';
+    confLabel = confirmed ? '✓ CONFIRMED (>30% skew)' : '~ TENTATIVE (<30% skew)';
+  } else if (biasDir === 'short') {
+    color = 'var(--red)'; label = 'SHORT BIAS';
+    confLabel = confirmed ? '✓ CONFIRMED (>30% skew)' : '~ TENTATIVE (<30% skew)';
+  } else {
+    color = 'var(--yel)'; label = 'NEUTRAL';
+    confLabel = 'No directional skew — wait for clarity';
+  }
+
+  const banner = document.getElementById('verdict-banner');
+  banner.className = `verdict-banner ${biasDir === 'long' ? 'long' : biasDir === 'short' ? 'short' : 'neut'}`;
+
+  const dot = document.getElementById('vd-dot');
+  dot.style.color = color; dot.style.background = color;
+  dot.style.boxShadow = `0 0 16px ${color}`;
+
+  const txt = document.getElementById('vd-text');
+  txt.textContent = label; txt.style.color = color;
+
+  document.getElementById('vd-conf').textContent = confLabel;
+  document.getElementById('vd-conf').style.color = color;
+  document.getElementById('vd-skew').textContent = `skew ${skewPct >= 0 ? '+' : ''}${skewPct.toFixed(1)}%`;
+
+  const netEl = document.getElementById('vd-net');
+  netEl.textContent = fmt(nq.rec.net);
+  netEl.className = 'val ' + (nq.rec.net >= 0 ? 'green' : 'red');
+
+  const chgEl = document.getElementById('vd-chg');
+  chgEl.textContent = fmt(weeklyChg);
+  chgEl.className = 'val ' + (weeklyChg >= 0 ? 'green' : 'red');
+
+  // Update NET CHANGE tooltip dynamically
+  const { rec, prev } = nq;
+  if (prev) {
+    const thisNet = rec.net;
+    const prevNet = prev.net;
+    const chgVal  = thisNet - prevNet;
+    const sign    = v => v >= 0 ? '+' : '';
+    const col     = v => v >= 0 ? 'grn' : 'red';
+
+    // Formula box — no "+" on the subtracted value
+    const fmtBox = document.getElementById('tt-chg-formula');
+    if (fmtBox) fmtBox.innerHTML = `
+      <span class="hl">Formula:</span><br>
+      This week's (Longs − Shorts)<br>
+      &nbsp;&nbsp;<em>minus</em> Last week's (Longs − Shorts)<br><br>
+      <span style="color:#3a5070;">This week's example:</span><br>
+      <span class="${col(thisNet)}">${sign(thisNet)}${thisNet.toLocaleString()}</span>
+      &minus; ${prevNet.toLocaleString()}
+      = <span class="${col(chgVal)}">${sign(chgVal)}${chgVal.toLocaleString()}</span>`;
+
+    // Explanatory text — fully live
+    const explainEl = document.getElementById('tt-chg-explain');
+    if (explainEl) {
+      const absChg  = Math.abs(chgVal).toLocaleString();
+      const impulse = chgVal < 0 ? 'bearish' : 'bullish';
+      const action  = chgVal < 0
+        ? `shed <strong>${absChg}</strong> contracts of net long exposure`
+        : `added <strong>${absChg}</strong> contracts of net long exposure`;
+      const netSign = thisNet >= 0 ? 'still positive' : 'already negative';
+      explainEl.innerHTML = `This week big money ${action}. Net is ${netSign} (<strong>${sign(thisNet)}${thisNet.toLocaleString()}</strong>) — that's a <strong>${impulse} impulse</strong>.`;
+    }
+  }
+
+  // Update MOMENTUM tooltip explain
+  const momExplain = document.getElementById('tt-mom-explain');
+  if (momExplain) {
+    let momText = '';
+    if (biasDir === 'long') {
+      momText = weeklyChg > 0
+        ? `Bias is <strong>LONG</strong> and big money added <strong>${fmt(weeklyChg)}</strong> contracts this week — they are pressing the long. Strong signal.`
+        : `Bias is <strong>LONG</strong> but big money shed <strong>${fmt(Math.abs(weeklyChg))}</strong> contracts this week — they are trimming the long lean. Watch closely.`;
+    } else if (biasDir === 'short') {
+      momText = weeklyChg < 0
+        ? `Bias is <strong>SHORT</strong> and big money added <strong>${fmt(Math.abs(weeklyChg))}</strong> to short exposure this week — pressing the short. Strong signal.`
+        : `Bias is <strong>SHORT</strong> but big money covered <strong>${fmt(weeklyChg)}</strong> contracts this week — shorts being reduced. Watch closely.`;
+    } else {
+      momText = `Bias is <strong>NEUTRAL</strong> — no clear skew in either direction. Wait for confirmation before trading the bias.`;
+    }
+    momExplain.innerHTML = momText;
+  }
+
+  const momEl = document.getElementById('vd-mom');
+  const momBull = momentum.includes('BUILDING') && biasDir !== 'short';
+  const momBear = momentum.includes('BUILDING') && biasDir === 'short';
+  momEl.textContent = momentum;
+  momEl.className   = 'val ' + (momBull ? 'green' : momBear ? 'red' : 'yel');
+}
+
+// ── GAUGE ─────────────────────────────────────────────────
+function renderGauge(nq) {
+  const { pctRank, rec, skewPct } = nq;
+
+  // Needle maps SKEW directly: -100% = -90° (far left/SHORT), 0% = 0° (up/center), +100% = +90° (far right/LONG)
+  // ±30% skew = ±27° rotation — lands exactly at the amber ±30% markers on the gauge
+  // Clamped to ±90° to stay within the arc
+  const rot = Math.max(-90, Math.min(90, (skewPct / 100) * 90));
+  document.getElementById('gauge-needle').setAttribute('transform', `rotate(${rot}, 170, 185)`);
+
+  // Pct text in div above SVG
+  const pctEl = document.getElementById('gauge-pct-txt');
+  pctEl.textContent = `${pctRank}th pct · 1yr range`;
+  pctEl.style.color = pctRank >= 70 ? '#10b981' : pctRank <= 30 ? '#ef4444' : '#94a3b8';
+
+  // Skew text in div above SVG — color by Fabio threshold
+  const skewEl = document.getElementById('gauge-skew-txt');
+  const absSkew = Math.abs(skewPct);
+  skewEl.textContent = `skew ${skewPct >= 0 ? '+' : ''}${skewPct.toFixed(1)}%`;
+  skewEl.style.color = absSkew >= 30 ? (skewPct > 0 ? '#10b981' : '#ef4444') :
+                       absSkew >= 12 ? '#f59e0b' : '#64748b';
+
+  // Meta stats
+  document.getElementById('gm-longs').textContent  = rec.longs.toLocaleString();
+  document.getElementById('gm-shorts').textContent = rec.shorts.toLocaleString();
+  document.getElementById('gm-oi').textContent     = (rec.oi / 1000).toFixed(0) + 'k';
+}
+
+// ── BARS SVG ──────────────────────────────────────────────
+function renderBars(nq) {
+  const { bars, streak, streakDir } = nq;
+  const svg = document.getElementById('bars-svg');
+  const W = svg.parentElement.clientWidth - 32;
+  const H = svg.parentElement.clientHeight - 60;
+
+  if (W <= 0 || H <= 0) return;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const n = bars.length;
+  if (!n) return;
+
+  // Tight spacing: fixed small gap, bars fill the available width
+  const gap  = 5;  // fixed gap between bars (px)
+  const barW = Math.min(90, Math.floor((W - 40 - gap * (n + 1)) / n));
+  const baseY = Math.floor(H * 0.48);
+  const maxH  = Math.floor(H * 0.55);  // 25% taller than previous iteration
+
+  const maxAbs = Math.max(...bars.map(b => Math.abs(b.chg)), 1);
+
+  let svgContent = '';
+
+  // Baseline
+  svgContent += `<line x1="20" y1="${baseY}" x2="${W - 20}" y2="${baseY}" stroke="#1c2140" stroke-width="1.5"/>`;
+
+  // Zero label
+  svgContent += `<text x="16" y="${baseY + 5}" font-family="Space Mono" font-size="11" fill="#3a4870" text-anchor="end">0</text>`;
+
+  bars.forEach((bar, i) => {
+    const x    = 20 + gap + i * (barW + gap);  // fixed-gap positioning
+    const isBull = bar.chg >= 0;
+    const absChg = Math.abs(bar.chg);
+    const barH   = Math.max(4, Math.round((absChg / maxAbs) * maxH));
+    const y      = isBull ? baseY - barH : baseY;
+
+    // Uniform bright colors — no fade, same luminance for all bars
+    const color  = isBull ? 'rgba(16,185,129,0.90)' : 'rgba(239,68,68,0.90)';
+    const bdrCol = isBull ? '#10b981' : '#ef4444';
+    const opacity = 1;  // all bars same brightness
+
+    // Bar body
+    svgContent += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" 
+      fill="${color}" rx="2" opacity="${opacity}"/>`;
+
+    // Top border
+    const borderY = isBull ? y : y + barH - 1;
+    svgContent += `<rect x="${x}" y="${borderY}" width="${barW}" height="2" 
+      fill="${bdrCol}" rx="1" opacity="${opacity}"/>`;
+
+    // Streak highlight (last N consecutive same-dir bars)
+    if (streakDir && i >= bars.length - streak) {
+      svgContent += `<rect x="${x - 1}" y="${Math.min(y, baseY) - 2}" 
+        width="${barW + 2}" height="${barH + 4}" 
+        fill="none" stroke="${bdrCol}" stroke-width="1.5" rx="3" 
+        stroke-dasharray="none" opacity="0.5"/>`;
+    }
+
+    // Value label — above green bars, below red bars
+    if (barW >= 28) {
+      const shortVal = Math.abs(bar.chg) >= 1000
+        ? (Math.abs(bar.chg) / 1000).toFixed(1) + 'k'
+        : Math.abs(bar.chg).toString();
+
+      if (isBull) {
+        // Above green bar
+        svgContent += `<text x="${x + barW / 2}" y="${y - 7}"
+          font-family="Space Mono" font-size="13" fill="${bdrCol}"
+          text-anchor="middle" opacity="${opacity}" font-weight="700">+${shortVal}</text>`;
+      } else {
+        // Below red bar
+        svgContent += `<text x="${x + barW / 2}" y="${y + barH + 18}"
+          font-family="Space Mono" font-size="13" fill="${bdrCol}"
+          text-anchor="middle" opacity="${opacity}" font-weight="700">-${shortVal}</text>`;
+      }
+    }
+    // No date labels below bars
+  });
+
+  // +30% threshold line — bright amber above baseline
+  // −30% threshold line — bright amber below baseline
+  const thresh30 = maxAbs * 0.3;
+  const th30H = Math.round((thresh30 / maxAbs) * maxH);
+  if (th30H > 4) {
+    // +30% above baseline
+    svgContent += `<line x1="20" y1="${baseY - th30H}" x2="${W - 20}" y2="${baseY - th30H}" 
+      stroke="rgba(245,158,11,0.65)" stroke-width="2" stroke-dasharray="7,4"/>`;
+    svgContent += `<text x="${W - 14}" y="${baseY - th30H - 7}" 
+      font-family="Space Mono" font-size="13" fill="#f59e0b" text-anchor="end" font-weight="700">+30%</text>`;
+    // −30% below baseline
+    svgContent += `<line x1="20" y1="${baseY + th30H}" x2="${W - 20}" y2="${baseY + th30H}" 
+      stroke="rgba(245,158,11,0.65)" stroke-width="2" stroke-dasharray="7,4"/>`;
+    svgContent += `<text x="${W - 14}" y="${baseY + th30H + 16}" 
+      font-family="Space Mono" font-size="13" fill="#f59e0b" text-anchor="end" font-weight="700">−30%</text>`;
+  }
+
+  svg.innerHTML = svgContent;
+
+  // Streak badge
+  const badge = document.getElementById('streak-badge');
+  if (streak > 0 && streakDir) {
+    const dir  = streakDir === 'bull' ? 'bullish' : 'bearish';
+    const icon = streakDir === 'bull' ? '↑' : '↓';
+    badge.textContent = `${streak} consecutive ${icon} ${dir}`;
+    badge.className   = `streak-badge ${streakDir === 'bull' ? 'streak-bull' : 'streak-bear'}`;
+  } else {
+    badge.textContent = 'mixed';
+    badge.className   = 'streak-badge streak-neut';
+  }
+}
+
+// ── PEERS ─────────────────────────────────────────────────
+const PEER_META = {
+  NQ:  { full: 'Nasdaq Mini',          cftcCode: '209742', cftcName: 'NASDAQ MINI - CHICAGO MERCANTILE EXCHANGE' },
+  ES:  { full: 'S&P 500 Consolidated', cftcCode: '13874+', cftcName: 'S&P 500 CONSOLIDATED - CME (standard + E-Mini + Micro)' },
+  YM:  { full: 'E-Mini Dow Jones',     cftcCode: '12460P', cftcName: 'DOW JONES INDUSTRIAL AVG- $5 - CBOT' },
+  RTY: { full: 'E-Mini Russell 2000',  cftcCode: '239742', cftcName: 'E-MINI RUSSELL 2000 STOCK INDEX - CME' },
+};
+
+function buildTooltipHTML(sym, m) {
+  const meta    = PEER_META[sym];
+  const f       = n => (n >= 0 ? '+' : '') + n.toLocaleString();
+  const fc      = n => n >= 0 ? 'color:#10b981' : 'color:#ef4444';
+  // Use CFTC-reported change fields directly — matches what you see on the CFTC website
+  const lChg    = m.rec.cL;   // change_in_noncomm_long_all  (CFTC reported)
+  const sChg    = m.rec.cS;   // change_in_noncomm_short_all (CFTC reported)
+  const prevNet = m.prev.net;
+  const currNet = m.rec.net;
+  const netChg  = currNet - prevNet;
+  // For formula display: show prevNet without leading + to avoid confusing "+12,525 − +20,600"
+  const prevNetDisplay = prevNet.toLocaleString(); // no + prefix on subtracted value
+  return `
+    <div class="pt-hdr">CFTC SOURCE · ${meta.full} · ${m.rec.date}</div>
+    <div class="pt-row"><span class="pt-lbl">Non-Comm Longs</span><span class="pt-val" style="color:#10b981">${m.rec.longs.toLocaleString()}</span></div>
+    <div class="pt-row"><span class="pt-lbl">Non-Comm Shorts</span><span class="pt-val" style="color:#ef4444">${m.rec.shorts.toLocaleString()}</span></div>
+    <div class="pt-row"><span class="pt-lbl">Long change (wk)</span><span class="pt-val" style="${fc(lChg)}">${f(lChg)}</span></div>
+    <div class="pt-row"><span class="pt-lbl">Short change (wk)</span><span class="pt-val" style="${fc(sChg)}">${f(sChg)}</span></div>
+    <div class="pt-div"></div>
+    <div class="pt-formula">
+      <b style="color:#94a3b8;">Net</b> = Longs − Shorts = <span style="${fc(currNet)}">${f(currNet)}</span><br>
+      <b style="color:#94a3b8;">Skew</b> = Net ÷ (L+S) × 100 = <span style="${fc(m.skewPct)}">${m.skewPct >= 0 ? '+' : ''}${m.skewPct.toFixed(1)}%</span><br>
+      <b style="color:#94a3b8;">Wk Change</b> = ${f(currNet)} − ${prevNetDisplay} = <span style="${fc(netChg)}">${f(netChg)}</span>
+    </div>
+    <div class="pt-src">CFTC: ${meta.cftcName}</div>`;
+}
+
+// Helper: populate the 4 data rows for a peer tile
+function setPeerRows(sym, rec) {
+  const f  = n => (n >= 0 ? '+' : '') + n.toLocaleString();
+  const fc = n => n >= 0 ? 'green' : 'red';
+  const s  = sym.toLowerCase();
+  const setEl = (id, val, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    if (cls) el.className = 'pr-val ' + cls;
+  };
+  setEl(`${s}-pr-longs`,  rec.longs.toLocaleString(),  'green');
+  setEl(`${s}-pr-shorts`, rec.shorts.toLocaleString(), 'red');
+  setEl(`${s}-pr-cl`,     f(rec.cL), fc(rec.cL));
+  setEl(`${s}-pr-cs`,     f(rec.cS), fc(rec.cS));
+}
+
+function renderPeers(nq, td) {
+  let confirms = 0;
+
+  // ── NQ tile ──
+  const nqBadge   = document.getElementById('nq-peer-badge');
+  const nqNetEl   = document.getElementById('nq-peer-net');
+  const nqTooltip = document.getElementById('nq-tooltip');
+  if (nq && nq.rec && nq.prev && nqBadge) {
+    const dirTxt = nq.biasDir === 'long' ? 'LONG' : nq.biasDir === 'short' ? 'SHORT' : 'NEUTRAL';
+    nqBadge.textContent = dirTxt;
+    nqBadge.className   = `peer-badge ${nq.biasDir === 'long' ? 'pb-long' : nq.biasDir === 'short' ? 'pb-short' : 'pb-neut'}`;
+    if (nqNetEl) {
+      nqNetEl.textContent = `Net ${fmt(nq.rec.net)}  skew ${nq.skewPct >= 0 ? '+' : ''}${nq.skewPct.toFixed(0)}%`;
+      nqNetEl.className   = 'peer-net ' + (nq.rec.net >= 0 ? 'green' : 'red');
+    }
+    setPeerRows('nq', nq.rec);
+    if (nqTooltip) nqTooltip.innerHTML = buildTooltipHTML('NQ', nq);
+  }
+
+  // ── ES, YM, RTY tiles ──
+  ['ES', 'YM', 'RTY'].forEach(sym => {
+    const m       = compute(sym, td);
+    const badge   = document.getElementById(`${sym.toLowerCase()}-badge`);
+    const netEl   = document.getElementById(`${sym.toLowerCase()}-net`);
+    const tooltip = document.getElementById(`${sym.toLowerCase()}-tooltip`);
+
+    if (!m) {
+      badge.textContent = 'NO DATA'; badge.className = 'peer-badge pb-neut';
+      if (netEl) netEl.textContent = '—';
+      return;
+    }
+
+    const agrees = m.biasDir === nq.biasDir && nq.biasDir !== 'neutral';
+    if (agrees) confirms++;
+
+    const dirTxt = m.biasDir === 'long' ? 'LONG' : m.biasDir === 'short' ? 'SHORT' : 'NEUTRAL';
+    const icon   = agrees ? ' ✓' : m.biasDir !== 'neutral' ? ' ✗' : '';
+    badge.textContent = dirTxt + icon;
+    badge.className   = `peer-badge ${m.biasDir === 'long' ? 'pb-long' : m.biasDir === 'short' ? 'pb-short' : 'pb-neut'}`;
+
+    if (netEl) {
+      netEl.textContent = `Net ${fmt(m.rec.net)}  skew ${m.skewPct >= 0 ? '+' : ''}${m.skewPct.toFixed(0)}%`;
+      netEl.className   = 'peer-net ' + (m.rec.net >= 0 ? 'green' : 'red');
+    }
+
+    setPeerRows(sym, m.rec);
+
+    if (tooltip && m.rec && m.prev) {
+      tooltip.innerHTML = buildTooltipHTML(sym, m);
+    }
+  });
+
+  const pcEl = document.getElementById('pc-count');
+  pcEl.textContent = `${confirms}/3`;
+  pcEl.className   = `pc-count ${confirms >= 2 ? 'green' : confirms === 1 ? 'yel' : 'red'}`;
+}
+
+// ── CONTROLS ──────────────────────────────────────────────
+function onDateChange() {
+  const val = document.getElementById('date-input').value;
+  if (!val) return;
+  viewDate = new Date(val + 'T12:00:00');
+  render();
+}
+
+function goLive() {
+  viewDate = null;
+  document.getElementById('date-input').value = new Date().toISOString().slice(0, 10);
+  render();
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  return (n >= 0 ? '+' : '') + n.toLocaleString();
+}
+
+// Redraw bars on resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const nq = compute('NQ', viewDate);
+    if (nq) renderBars(nq);
+  }, 150);
+});
+
+// ── TOUCH TOOLTIP SUPPORT ─────────────────────────────────
+// On mobile, tap the peer tile or ⓘ stat to show/hide tooltip
+document.addEventListener('click', e => {
+  // Peer tiles
+  const peer = e.target.closest('.peer');
+  if (peer) {
+    const wasOpen = peer.classList.contains('tt-open');
+    document.querySelectorAll('.peer.tt-open').forEach(p => p.classList.remove('tt-open'));
+    if (!wasOpen) peer.classList.add('tt-open');
+    return;
+  }
+  // has-tooltip stat blocks
+  const stat = e.target.closest('.has-tooltip');
+  if (stat) {
+    const wasOpen = stat.classList.contains('tt-open');
+    document.querySelectorAll('.has-tooltip.tt-open').forEach(s => s.classList.remove('tt-open'));
+    if (!wasOpen) stat.classList.add('tt-open');
+    return;
+  }
+  // Tap anywhere else closes all
+  document.querySelectorAll('.peer.tt-open, .has-tooltip.tt-open')
+    .forEach(el => el.classList.remove('tt-open'));
+});
+
+// ── INIT ──────────────────────────────────────────────────
+load();
+</script>
+</body>
+</html>
