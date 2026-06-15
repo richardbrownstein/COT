@@ -613,7 +613,7 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
     <div class="peer-left">
       <div class="peer-sym">RTY</div>
       <div class="peer-info">
-        <div class="peer-name">Russell 2000 Futures <span style="color:#3b82f6;font-size:10px;">ⓘ</span></div>
+        <div class="peer-name">Russell E-Mini Futures <span style="color:#3b82f6;font-size:10px;">ⓘ</span></div>
         <div class="peer-net" id="rty-net">—</div>
         <div class="peer-rows">
           <div class="pr"><span class="pr-lbl">Non-Comm Longs</span><span class="pr-val green" id="rty-pr-longs">—</span></div>
@@ -635,10 +635,10 @@ const CFTC_BASE = 'https://publicreporting.cftc.gov/resource/6dca-aqww.json';
 const PROXY     = 'https://corsproxy.io/?';
 
 const FILTERS = {
-  NQ:  { field: 'market_and_exchange_names',   value: 'NASDAQ MINI' },
-  ES:  { field: 'cftc_contract_market_code',   value: '13874+' },   // S&P 500 Consolidated
-  YM:  { field: 'cftc_contract_market_code',   value: '124603' },   // DJIA x $5 - CBOT (matches Tradingster code 124603)
-  RTY: { field: 'market_and_exchange_names',   value: 'E-MINI RUSSELL 2000' },
+  NQ:  { field: 'cftc_contract_market_code', value: '209742' }, // NASDAQ MINI - CME
+  ES:  { field: 'cftc_contract_market_code', value: '13874+' }, // S&P 500 Consolidated - CME
+  YM:  { field: 'cftc_contract_market_code', value: '124603' }, // DJIA x $5 - CBOT
+  RTY: { field: 'cftc_contract_market_code', value: '239742' }, // Russell E-Mini - CME
 };
 
 // ── STATE ─────────────────────────────────────────────────
@@ -1063,7 +1063,7 @@ const PEER_META = {
   NQ:  { full: 'Nasdaq Mini',          cftcCode: '209742', cftcName: 'NASDAQ MINI - CHICAGO MERCANTILE EXCHANGE' },
   ES:  { full: 'S&P 500 Consolidated', cftcCode: '13874+', cftcName: 'S&P 500 CONSOLIDATED - CME (standard + E-Mini + Micro)' },
   YM:  { full: 'DJIA x $5',            cftcCode: '124603', cftcName: 'DJIA x $5 - CHICAGO BOARD OF TRADE' },
-  RTY: { full: 'E-Mini Russell 2000',  cftcCode: '239742', cftcName: 'E-MINI RUSSELL 2000 STOCK INDEX - CME' },
+  RTY: { full: 'Russell E-Mini',       cftcCode: '239742', cftcName: 'RUSSELL E-MINI - CHICAGO MERCANTILE EXCHANGE' },
 };
 
 function buildTooltipHTML(sym, m) {
