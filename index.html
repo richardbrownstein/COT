@@ -39,7 +39,8 @@ body {
   html, body { height: 100vh; overflow: hidden; }
   body {
     display: grid;
-    grid-template-rows: 62px 150px 1fr 145px;
+    grid-template-rows: 62px 185px 1fr 145px;
+    overflow: visible;
   }
 }
 
@@ -86,6 +87,7 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
   padding: 14px 16px;
   position: relative;
   transition: background 0.4s;
+  overflow: visible;
 }
 .verdict-banner.long  { background: radial-gradient(ellipse at center, rgba(16,185,129,0.12) 0%, transparent 70%); }
 .verdict-banner.short { background: radial-gradient(ellipse at center, rgba(239,68,68,0.12) 0%, transparent 70%); }
@@ -107,19 +109,19 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
 .vd-sub .conf { font-weight: 700; font-size: 15px; }
 
 .vd-sep { width: 1px; height: 52px; background: var(--bdr); margin: 0 4px; }
-.vd-stat { text-align: center; }
+.vd-stat { text-align: center; overflow: visible; }
 .vd-stat .lbl { font-size: 11px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); margin-bottom: 5px; }
-.vd-stat .val { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+.vd-stat .val { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1.3; overflow: visible; display: block; }
 
 @media (min-width: 900px) {
-  .verdict-banner { padding: 0 32px; gap: 26px; flex-wrap: nowrap; }
+  .verdict-banner { padding: 0 32px; gap: 26px; flex-wrap: nowrap; overflow: visible; }
   .vd-dot { width: 30px; height: 30px; }
   .vd-text { font-size: 66px; }
   .vd-sub .conf { font-size: 19px; }
   .vd-sub { font-size: 16px; }
-  .vd-sep { height: 82px; margin: 0 8px; }
+  .vd-sep { height: 110px; margin: 0 8px; }
   .vd-stat .lbl { font-size: 13px; margin-bottom: 7px; }
-  .vd-stat .val { font-size: 36px; }
+  .vd-stat .val { font-size: 36px; line-height: 1.3; overflow: visible; }
 }
 
 /* ── MAIN ── */
@@ -267,7 +269,6 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
 .pc-count { font-size: 38px; font-weight: 700; font-family: var(--mono); }
 .pc-label { font-size: 11px; letter-spacing: 0.1em; color: var(--dim); font-family: var(--mono); }
 
-/* ── PEER TOOLTIP (opens upward from bottom bar) ── */
 .peer { position: relative; }
 .peer-tooltip {
   display: none;
@@ -444,11 +445,11 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
       <div class="tt-line">Momentum compares the <strong>bias direction</strong> to the <strong>weekly change direction</strong> — is big money pressing their current position, or backing off?</div>
       <div class="tt-formula">
         <span class="hl">LONG bias:</span><br>
-        &nbsp;Wk change <span class="grn">positive</span> → <span class="grn">BUILDING ↑</span> (adding to long lean)<br>
-        &nbsp;Wk change <span class="red">negative</span> → <span class="red">COOLING ↓</span> (trimming long lean)<br><br>
+        &nbsp;Wk change <span class="grn">positive</span> → <span class="grn">BUILDING ▲</span> (adding to long lean)<br>
+        &nbsp;Wk change <span class="red">negative</span> → <span class="red">COOLING ▼</span> (trimming long lean)<br><br>
         <span class="hl">SHORT bias:</span><br>
-        &nbsp;Wk change <span class="red">negative</span> → <span class="red">BUILDING ↓</span> (adding to short lean)<br>
-        &nbsp;Wk change <span class="grn">positive</span> → <span class="grn">COOLING ↑</span> (covering shorts)<br><br>
+        &nbsp;Wk change <span class="red">negative</span> → <span class="red">BUILDING ▼</span> (adding to short lean)<br>
+        &nbsp;Wk change <span class="grn">positive</span> → <span class="grn">COOLING ▲</span> (covering shorts)<br><br>
         <span class="hl">NEUTRAL bias:</span> → <span style="color:#f59e0b;">MIXED</span>
       </div>
       <div class="tt-line" id="tt-mom-explain">Loading…</div>
@@ -464,6 +465,7 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
   <div class="gauge-panel">
     <!-- Pct + skew info above the arc, outside SVG for clean spacing -->
     <div class="gauge-info">
+      <div style="font-size:9px;letter-spacing:0.16em;color:var(--dim);font-family:var(--mono);margin-bottom:4px;">CURRENT SKEW</div>
       <div class="gi-pct" id="gauge-pct-txt">—</div>
       <div class="gi-skew" id="gauge-skew-txt">—</div>
     </div>
@@ -544,14 +546,14 @@ input[type=date]:focus { border-color: #93c5fd; box-shadow: 0 0 16px rgba(96,165
   <!-- BARS PANEL -->
   <div class="bars-panel">
     <div class="bars-hdr">
-      <div class="bars-title">WEEKLY NET CHANGE — LAST 12 WEEKS</div>
+      <div class="bars-title">CUMULATIVE SKEW — LAST 12 WEEKS</div>
       <div class="streak-badge streak-neut" id="streak-badge">—</div>
     </div>
     <svg id="bars-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"></svg>
     <div class="bars-legend">
       <div class="ll"><div class="ld" style="background:rgba(16,185,129,0.7)"></div>Bullish week</div>
       <div class="ll"><div class="ld" style="background:rgba(239,68,68,0.7)"></div>Bearish week</div>
-      <div class="ll" style="color:var(--dim2)">│ dashed = 30% skew threshold</div>
+      <div class="ll" style="color:var(--dim2)">│ dashed = 30% High Impulse</div>
     </div>
   </div>
 </div>
@@ -783,26 +785,29 @@ function compute(sym, targetDate) {
 
   // Momentum: is weekly change reinforcing the bias?
   let momentum;
-  if (biasDir === 'long')        momentum = weeklyChg > 0 ? 'BUILDING ↑' : 'COOLING ↓';
-  else if (biasDir === 'short')  momentum = weeklyChg < 0 ? 'BUILDING ↓' : 'COOLING ↑';
+  if (biasDir === 'long')        momentum = weeklyChg > 0 ? 'BUILDING ▲' : 'COOLING ▼';
+  else if (biasDir === 'short')  momentum = weeklyChg < 0 ? 'BUILDING ▼' : 'COOLING ▲';
   else                           momentum = 'MIXED';
 
-  // 12-week change bar data
+  // 12-week CUMULATIVE SKEW history
+  // Each bar = that week's Net ÷ that week's (Longs + Shorts) × 100
+  // Shows WHERE big money stood each week, not how much they moved
   const recent = data.filter(r => r.date <= tStr).slice(0, 13);
   const bars = [];
   for (let i = 0; i < recent.length - 1; i++) {
-    bars.push({
-      date: recent[i].date.slice(5),  // MM-DD
-      chg:  recent[i].net - recent[i + 1].net,
-    });
+    const thisRec = recent[i];
+    const totalLS = thisRec.longs + thisRec.shorts;
+    const chg     = thisRec.net - recent[i + 1].net;  // kept for streak/tooltip
+    const pct     = totalLS > 0 ? (thisRec.net / totalLS) * 100 : 0;
+    bars.push({ date: thisRec.date.slice(5), chg, pct });
   }
   bars.reverse();  // oldest first for display
 
-  // Streak: consecutive same-direction weeks (from most recent)
+  // Streak: consecutive weeks with same cumulative skew direction
   let streak = 0, streakDir = null;
   const barsDesc = [...bars].reverse();
   for (const b of barsDesc) {
-    const d = b.chg > 0 ? 'bull' : b.chg < 0 ? 'bear' : null;
+    const d = b.pct > 0 ? 'bull' : b.pct < 0 ? 'bear' : null;
     if (streak === 0 && d) { streak = 1; streakDir = d; }
     else if (d === streakDir) streak++;
     else break;
@@ -945,6 +950,7 @@ function renderGauge(nq) {
   document.getElementById('gm-longs').textContent  = rec.longs.toLocaleString();
   document.getElementById('gm-shorts').textContent = rec.shorts.toLocaleString();
   document.getElementById('gm-oi').textContent     = (rec.oi / 1000).toFixed(0) + 'k';
+
 }
 
 // ── BARS SVG ──────────────────────────────────────────────
@@ -960,96 +966,75 @@ function renderBars(nq) {
   const n = bars.length;
   if (!n) return;
 
-  // Tight spacing: fixed small gap, bars fill the available width
-  const gap  = 5;  // fixed gap between bars (px)
+  const gap  = 5;
   const barW = Math.min(90, Math.floor((W - 40 - gap * (n + 1)) / n));
   const baseY = Math.floor(H * 0.48);
-  const maxH  = Math.floor(H * 0.55);  // 25% taller than previous iteration
+  const topSpace = baseY - 24;
+  const botSpace = (H - baseY) - 24;
 
-  const maxAbs = Math.max(...bars.map(b => Math.abs(b.chg)), 1);
+  // Scale: max(largest |pct|, 30) — 30% line always visible as fixed reference
+  const maxAbsPct = Math.max(...bars.map(b => Math.abs(b.pct)), 0.1);
+  const scaleMax  = Math.max(maxAbsPct, 30);
+
+  // Fixed 30% threshold pixel heights
+  const th30Htop = Math.round((30 / scaleMax) * topSpace);
+  const th30Hbot = Math.round((30 / scaleMax) * botSpace);
 
   let svgContent = '';
 
+  // Draw threshold lines FIRST (behind bars)
+  svgContent += `<line x1="20" y1="${baseY - th30Htop}" x2="${W - 20}" y2="${baseY - th30Htop}"
+    stroke="rgba(245,158,11,0.75)" stroke-width="2" stroke-dasharray="7,4"/>`;
+  svgContent += `<text x="24" y="${baseY - th30Htop - 7}"
+    font-family="Space Mono" font-size="18" fill="#f59e0b" text-anchor="start" font-weight="700">30%</text>`;
+  svgContent += `<line x1="20" y1="${baseY + th30Hbot}" x2="${W - 20}" y2="${baseY + th30Hbot}"
+    stroke="rgba(245,158,11,0.75)" stroke-width="2" stroke-dasharray="7,4"/>`;
+  svgContent += `<text x="24" y="${baseY + th30Hbot + 22}"
+    font-family="Space Mono" font-size="18" fill="#f59e0b" text-anchor="start" font-weight="700">30%</text>`;
+
   // Baseline
   svgContent += `<line x1="20" y1="${baseY}" x2="${W - 20}" y2="${baseY}" stroke="#1c2140" stroke-width="1.5"/>`;
-
-  // Zero label
   svgContent += `<text x="16" y="${baseY + 5}" font-family="Space Mono" font-size="11" fill="#3a4870" text-anchor="end">0</text>`;
 
   bars.forEach((bar, i) => {
-    const x    = 20 + gap + i * (barW + gap);  // fixed-gap positioning
-    const isBull = bar.chg >= 0;
-    const absChg = Math.abs(bar.chg);
-    const barH   = Math.max(4, Math.round((absChg / maxAbs) * maxH));
+    const x      = 20 + gap + i * (barW + gap);
+    const isBull = bar.pct >= 0;
+    const absPct = Math.abs(bar.pct);
+    const availH = isBull ? topSpace : botSpace;
+    const barH   = Math.max(4, Math.min(Math.round((absPct / scaleMax) * availH), availH - 28));
     const y      = isBull ? baseY - barH : baseY;
-
-    // Uniform bright colors — no fade, same luminance for all bars
     const color  = isBull ? 'rgba(16,185,129,0.90)' : 'rgba(239,68,68,0.90)';
     const bdrCol = isBull ? '#10b981' : '#ef4444';
-    const opacity = 1;  // all bars same brightness
 
-    // Bar body
-    svgContent += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" 
-      fill="${color}" rx="2" opacity="${opacity}"/>`;
-
-    // Top border
+    svgContent += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${color}" rx="2"/>`;
     const borderY = isBull ? y : y + barH - 1;
-    svgContent += `<rect x="${x}" y="${borderY}" width="${barW}" height="2" 
-      fill="${bdrCol}" rx="1" opacity="${opacity}"/>`;
+    svgContent += `<rect x="${x}" y="${borderY}" width="${barW}" height="2" fill="${bdrCol}" rx="1"/>`;
 
-    // Streak highlight (last N consecutive same-dir bars)
     if (streakDir && i >= bars.length - streak) {
-      svgContent += `<rect x="${x - 1}" y="${Math.min(y, baseY) - 2}" 
-        width="${barW + 2}" height="${barH + 4}" 
-        fill="none" stroke="${bdrCol}" stroke-width="1.5" rx="3" 
-        stroke-dasharray="none" opacity="0.5"/>`;
+      svgContent += `<rect x="${x-1}" y="${Math.min(y,baseY)-2}" width="${barW+2}" height="${barH+4}"
+        fill="none" stroke="${bdrCol}" stroke-width="1.5" rx="3" opacity="0.5"/>`;
     }
 
-    // Value label — above green bars, below red bars
     if (barW >= 28) {
-      const shortVal = Math.abs(bar.chg) >= 1000
-        ? (Math.abs(bar.chg) / 1000).toFixed(1) + 'k'
-        : Math.abs(bar.chg).toString();
-
+      const label = Math.abs(bar.pct).toFixed(1) + '%';
       if (isBull) {
-        // Above green bar
-        svgContent += `<text x="${x + barW / 2}" y="${y - 7}"
+        svgContent += `<text x="${x + barW/2}" y="${y - 7}"
           font-family="Space Mono" font-size="13" fill="${bdrCol}"
-          text-anchor="middle" opacity="${opacity}" font-weight="700">+${shortVal}</text>`;
+          text-anchor="middle" font-weight="700">${label}</text>`;
       } else {
-        // Below red bar
-        svgContent += `<text x="${x + barW / 2}" y="${y + barH + 18}"
+        svgContent += `<text x="${x + barW/2}" y="${y + barH + 18}"
           font-family="Space Mono" font-size="13" fill="${bdrCol}"
-          text-anchor="middle" opacity="${opacity}" font-weight="700">-${shortVal}</text>`;
+          text-anchor="middle" font-weight="700">${label}</text>`;
       }
     }
-    // No date labels below bars
   });
-
-  // +30% threshold line — bright amber above baseline
-  // −30% threshold line — bright amber below baseline
-  const thresh30 = maxAbs * 0.3;
-  const th30H = Math.round((thresh30 / maxAbs) * maxH);
-  if (th30H > 4) {
-    // +30% above baseline
-    svgContent += `<line x1="20" y1="${baseY - th30H}" x2="${W - 20}" y2="${baseY - th30H}" 
-      stroke="rgba(245,158,11,0.65)" stroke-width="2" stroke-dasharray="7,4"/>`;
-    svgContent += `<text x="${W - 14}" y="${baseY - th30H - 7}" 
-      font-family="Space Mono" font-size="13" fill="#f59e0b" text-anchor="end" font-weight="700">+30%</text>`;
-    // −30% below baseline
-    svgContent += `<line x1="20" y1="${baseY + th30H}" x2="${W - 20}" y2="${baseY + th30H}" 
-      stroke="rgba(245,158,11,0.65)" stroke-width="2" stroke-dasharray="7,4"/>`;
-    svgContent += `<text x="${W - 14}" y="${baseY + th30H + 16}" 
-      font-family="Space Mono" font-size="13" fill="#f59e0b" text-anchor="end" font-weight="700">−30%</text>`;
-  }
 
   svg.innerHTML = svgContent;
 
-  // Streak badge
   const badge = document.getElementById('streak-badge');
   if (streak > 0 && streakDir) {
     const dir  = streakDir === 'bull' ? 'bullish' : 'bearish';
-    const icon = streakDir === 'bull' ? '↑' : '↓';
+    const icon = streakDir === 'bull' ? '▲' : '▼';
     badge.textContent = `${streak} consecutive ${icon} ${dir}`;
     badge.className   = `streak-badge ${streakDir === 'bull' ? 'streak-bull' : 'streak-bear'}`;
   } else {
